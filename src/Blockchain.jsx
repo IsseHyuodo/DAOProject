@@ -46,35 +46,33 @@ try{
 }
 
 }
-const getEthereumAccount=async()=>{
+const getEthereumContract=async()=>{
     const connectedAccount =getGlobalState('connectedAccount')
 
     if(connectedAccount){
-        const web3=window.web3;
-        const networkId=await web3.eth.net.getId();
-        const networkData=await abi.networks[networkId];
-        if(networkData){
-            const contract =new web3.eth.contract(abi.abi,networkkData.address); // alternative of getContractFactory
+        const web3=window.web3; // same object which is now wrapped in web3js functionality that metamask injected
+  
+            const contract =new web3.eth.contract(abi.abi,"0x5FbDB2315678afecb367f032d93F642f64180aa3"); // alternative of getContractFactory 
+            // hardcode address
             return contract;
-        }else{
-            return null;
-        }
+    
     }
     else{
-        return getGlobalState('contract');
-    }
+        return getGlobalState('contract'); // need to look
+}
 }
 
 const performContribute=async (amount) =>{
     try{
         amount = window.web3.utils.toWei(amount.toString(),'ether') // alternative of ethers.parse
+        // since we have only one contract so its points to DAO contract-->DAO.json--abi
         const contract= await getEthereumContract()
         const account=getGlobalState('connectedAccount')
-        await contract.methods.contribute().sender({from:account,value: amount}) // sender used for payable
+        await contract.methods.contribute().send({from:account,value: amount}) // sender used for payable
         window.location.reload()
     }catch(error){
         reportError(error)
-        return error
+        // return error not make sense
     }
 }
 
