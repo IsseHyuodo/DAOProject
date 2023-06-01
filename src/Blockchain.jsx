@@ -1,202 +1,199 @@
-import Web3 from 'web3';
-import {setGlobalState} from "./store";
-import abi from "./abis/DAO.json"
+import Web3 from 'web3'
+import { setGlobalState, getGlobalState } from './store'
+import abi from './abis/contracts/DAO.sol/DAO.json'
+const { ethereum } = window
 
-// importing web3 object
-const {ethereum}=window // used to detect external provider(here we have Metamsk)
+window.web3 = new Web3(window.ethereum)
 
-window.web3=new Web3(ethereum);
-window.web3=new Web3(window.web3.currentProvider);
-
-const connectWallet=async()=>{
-
-    try{
-        if(!ethereum) return alert("Please install Metamask extensionin your browser");
-        const accounts=await ethereum.request({method:"eth_requestAccounts"})
-        setGlobalState('connectedAccount',accounts[0].toLowerCase());
-
-    }
-    catch(error){
-        reportError(error);
-    }
+const connectWallet = async () => {
+  try {
+    if (!ethereum) return alert('Please install Metamask')
+    const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+    setGlobalState('connectedAccount', accounts[0].toLowerCase())
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const isWalletConnected=async()=>{
-try{
-    if(!ethereum) return alert("please install metamask");
-    const accounts=await ethereum.request({method:"eth_accounts"});
+const isWalletConnected = async () => {
+  try {
+    if (!ethereum) return alert('Please install Metamask')
+    const accounts = await ethereum.request({ method: 'eth_accounts' })
 
-    window.ethereum.on('chainChanged',(chainId)=>{
-        window.location.reload();
+    window.ethereum.on('chainChanged', (chainId) => {
+      window.location.reload()
     })
-    window.ethereum.on('accountsChanged',async()=>{
-        setGlobalState('connectedaccount',accounts[0].toLowerCase);
-        await isWalletConnected()
+
+    window.ethereum.on('accountsChanged', async () => {
+      setGlobalState('connectedAccount', accounts[0].toLowerCase())
+      await isWalletConnected()
     })
-    if(accounts.length){
-        setGlobalState('connectedAccount',accounts[0].toLowercase());
 
-    }else{
-        alert("please connect wallet");
-        console.log("no accounts found");
+    if (accounts.length) {
+      setGlobalState('connectedAccount', accounts[0].toLowerCase())
+    } else {
+      alert('Please connect wallet.')
+      console.log('No accounts found.')
     }
-
-}catch(error){
-    reportError(error);
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-}
-const getEthereumContract=async()=>{
-    const connectedAccount =getGlobalState('connectedAccount')
+const getEthereumContract = async () => {
+  const connectedAccount = getGlobalState('connectedAccount')
 
-    if(connectedAccount){
-        const web3=window.web3; // same object which is now wrapped in web3js functionality that metamask injected
-  
-            const contract =new web3.eth.contract(abi.abi,"0x5FbDB2315678afecb367f032d93F642f64180aa3"); // alternative of getContractFactory 
-            // hardcode address
-            return contract;
-    
-    }
-    else{
-        return getGlobalState('contract'); // need to look
-}
+  if (connectedAccount) {
+     const web3 = window.web3     
+      const contract = new web3.eth.Contract(abi.abi,"0x5FbDB2315678afecb367f032d93F642f64180aa3")
+      return contract
+  } else {
+    return getGlobalState('contract')
+  }
 }
 
-const performContribute=async (amount) =>{
-    try{
-        amount = window.web3.utils.toWei(amount.toString(),'ether') // alternative of ethers.parse
-        // since we have only one contract so its points to DAO contract-->DAO.json--abi
-        const contract= await getEthereumContract()
-        const account=getGlobalState('connectedAccount')
-        await contract.methods.contribute().send({from:account,value: amount}) // sender used for payable
-        window.location.reload()
-    }catch(error){
-        reportError(error)
-        // return error not make sense
-    }
+const performContribute = async (amount) => {
+  try {
+    amount = window.web3.utils.toWei(amount.toString(), 'ether')
+    const contract = await getEthereumContract()
+    const account = getGlobalState('connectedAccount')
+
+    await contract.methods.contribute().send({ from: account, value: amount })
+
+    window.location.reload()
+  } catch (error) {
+    reportError(error)
+    return error
+  }
 }
 
-const getInfo= async () =>{
-    try{
-        if(!ethereum) return alert("please install Metamask")
+const getInfo = async () => {
+  try {
+    if (!ethereum) return alert('Please install Metamask')
 
-        const contract=await getEthereumContract()
-        const connectedAccount=getGlobalState('connectedAccount')
-        const isStakeholder=await contract.methods.isStakeholder()
-        .call({from:connectedAccount})
-        const balance=await contract.methods.daoBalance().call()
-        const myBalance=await contract.methods
-        .getBalance()
-        .call({from:connectedAccount})  //.call not alter the smart contract state
-        setGlobalState('Balance',window.web3.utils.fromWei(balance))
-        setGlobalState("myBalance",window.web3.utils.fromWei(myBalance))
-        setGlobalState("isStakeholder",isStakeholder)
-    }catch(error){
-        reportError(error)
-    }
+    const contract = await getEthereumContract()
+    const connectedAccount = getGlobalState('connectedAccount')
+    const isStakeholder = await contract.methods
+      .isStakeholder()
+      .call({ from: connectedAccount })
+    const balance = await contract.methods.daoBalance().call()
+    const mybalance = await contract.methods
+      .getBalance()
+      .call({ from: connectedAccount })
+    setGlobalState('balance', window.web3.utils.fromWei(balance))
+    setGlobalState('mybalance', window.web3.utils.fromWei(mybalance))
+    setGlobalState('isStakeholder', isStakeholder)
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const raiseProposal=async ({title,description,beneficiary,amount}) =>{
-    try{
-        amount=window.web3.utils.toWei(amount.toString(),'ether')
-        const contract=await getEthereumContract()
-        const account=getGlobalState('connectedAccount')
+const raiseProposal = async ({ title, description, beneficiary, amount }) => {
+  try {
+    amount = window.web3.utils.toWei(amount.toString(), 'ether')
+    const contract = await getEthereumContract()
+    const account = getGlobalState('connectedAccount')
 
-        await contract.methods
-        .createProposal(title,description,beneficiary,amount) //.send  alter the smart contract state
-        .send({from:account})
+    await contract.methods
+      .createProposal(title, description, beneficiary, amount)
+      .send({ from: account })
 
-        window.location.reload()
-    }catch(error){
-        reportError(error)
-    }
+    window.location.reload()
+  } catch (error) {
+    reportError(error)
+    return error
+  }
 }
 
-const getProposals=async() =>{
-    try{
-        if(!ethereum) return alert("Please install Metamask")
+const getProposals = async () => {
+  try {
+    if (!ethereum) return alert('Please install Metamask')
 
-        const contract=await getEthereumContract()
-        const proposals=await contract.methods.getProposals().call()
-        setGlobalState('proposals',structuredProposals(proposals))
-    }catch(error){
-        reportError(error)
-    }
+    const contract = await getEthereumContract()
+    const proposals = await contract.methods.getProposals().call()
+    setGlobalState('proposals', structuredProposals(proposals))
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const structuredProposals=(proposals)=>{
-    return proposals.map((proposal)=>({
-        id:         proposal.id,
-        amount:     window.web3.utils.fromWei(proposal.amount),
-        title:      proposal.title,
-        description:    proposal.description,
-        paid:       proposal.paid,
-        passed:     proposal.passed,
-        proposer:   proposal.proposer,
-        upvotes:    Number(proposal.upvotes), 
-        downvotes:  Number(proposal.downvotes),
-        beneficiary:    proposal.beneficiary,
-        executor:   proposal.executor,
-        duration:   proposal.duration
+const structuredProposals = (proposals) => {
+  return proposals
+    .map((proposal) => ({
+      id: proposal.id,
+      amount: window.web3.utils.fromWei(proposal.amount),
+      title: proposal.title,
+      description: proposal.description,
+      paid: proposal.paid,
+      passed: proposal.passed,
+      proposer: proposal.proposer,
+      upvotes: Number(proposal.upvotes),
+      downvotes: Number(proposal.downvotes),
+      beneficiary: proposal.beneficiary,
+      executor: proposal.executor,
+      duration: proposal.duration,
     }))
+    
 }
 
-const getProposal=async(id) =>{
-    try{
-        const proposals=getGlobalState('proposals')
-        return proposals.find((proposal)=>proposal.id==id)
-    }catch(error){
-        reportError(error)
-    }
-}
-const voteOnProposal=async(proposalId,supported)=>{
-    try{
-        const contract=await getEthereumContract()
-        const account=getGlobalState('connectedAccount')
-        await contract.methods.Vote(proposalId,supported)
-        .send({from:account})
-
-        window.location.reload()
-    }catch(error){
-        reportError(error)
-    }
+const getProposal = async (id) => {
+  try {
+    const proposals = getGlobalState('proposals')
+    return proposals.find((proposal) => proposal.id == id)
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const listVoters =async(id) =>{
-    try{
-        const contract=await getEthereumContract()
-        const votes=await contract.methods.getVotesOf(id).call()
-        return votes
-    }catch(error){
-        reportError(error)
-    }
+const voteOnProposal = async (proposalId, supported) => {
+  try {
+    const contract = await getEthereumContract()
+    const account = getGlobalState('connectedAccount')
+    await contract.methods
+      .Vote(proposalId, supported)
+      .send({ from: account })
+
+    window.location.reload()
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const payoutBeneficiary=async (id) =>{
-    try{
-        const contract=await getEthereumContract()
-        const account=getGlobalState('connectedAccount')
-        await contract.methods.payBeneficiary(id).send({from:account})
-        window.location.reload()
-    }catch(error){
-        reportError(error)
-    }
+const listVoters = async (id) => {
+  try {
+    const contract = await getEthereumContract()
+    const votes = await contract.methods.getVotesOf(id).call()
+    return votes
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-const reportError=(error) =>{
-    console.log(JSON.stringify(error),'red')
-    throw new Error('No ethereum object, something is wrong.')
+const payoutBeneficiary = async (id) => {
+  try {
+    const contract = await getEthereumContract()
+    const account = getGlobalState('connectedAccount')
+    await contract.methods.payBeneficiary(id).send({ from: account })
+    window.location.reload()
+  } catch (error) {
+    reportError(error)
+  }
 }
 
-export{
-    isWalletConnected,
-    connectWallet,
-    performContribute,
-    getInfo,
-    raiseProposal,
-    getProposals,
-    getProposal,
-    voteOnProposal,
-    listVoters,
-    payoutBeneficiary
+const reportError = (error) => {
+  console.log(JSON.stringify(error), 'red')
+  throw new Error(error)
+}
+
+export {
+  isWalletConnected,
+  connectWallet,
+  performContribute,
+  getInfo,
+  raiseProposal,
+  getProposals,
+  getProposal,
+  voteOnProposal,
+  listVoters,
+  payoutBeneficiary
 }

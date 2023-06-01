@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -8,7 +8,7 @@ bytes32 private immutable CONTRIBUTOR_ROLE=keccak256("CONTRIBUTOR");
 bytes32 private immutable STAKEHOLDER_ROLE=keccak256("STAKEHOLDER");
 
 uint256 immutable MIN_STAKEHOLDER_CONTRIBUTION= 1 ether;
-uint32 immutable MIN_VOTE_DURATION= 3 minutes;
+uint32 immutable MIN_VOTE_DURATION= 5 minutes;
 uint32 totalProposals;// int keeps track of total no of prop in the dao
 uint256 public daoBalance;// total balance in the dao
 
